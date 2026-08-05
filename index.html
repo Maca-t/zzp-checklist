@@ -18,11 +18,93 @@
     </script>
     <link rel="stylesheet" href="./shinylive/style-resets.css" />
     <link rel="stylesheet" href="./shinylive/shinylive.css" />
+
+    <style>
+      /* ================================================================
+         KNMT 'kiesje'-opstartscherm — dekt shinylive's eigen honingraat
+         volledig af zolang de webR-runtime nog aan het opstarten is.
+         ================================================================ */
+      #kiesje_boot_overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 999999;
+        background: #f4f6fb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        transition: opacity 0.4s ease;
+      }
+
+      #kiesje_boot_overlay.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #kiesje_boot_overlay .kiesje-spinner {
+        width: 46px;
+        height: 46px;
+        background: #566ab0;
+        border-radius: 6px;
+        transform: rotate(45deg);
+        animation: kiesje-boot-pulse 1.1s ease-in-out infinite;
+      }
+
+      @keyframes kiesje-boot-pulse {
+        0%, 100% { transform: rotate(45deg) scale(0.85); opacity: 0.55; }
+        50%      { transform: rotate(45deg) scale(1.05); opacity: 1;    }
+      }
+
+      #kiesje_boot_overlay .kiesje-laadtekst {
+        margin-top: 18px;
+        font-family: 'Sofia Pro', Verdana, Arial, sans-serif;
+        font-size: 13px;
+        color: #566a90;
+        letter-spacing: 0.03em;
+      }
+    </style>
+
     
   </head>
   <body>
     
+
+    <div id="kiesje_boot_overlay">
+      <div class="kiesje-spinner"></div>
+      <div class="kiesje-laadtekst">Bezig met laden...</div>
+    </div>
+
     <div style="height: 100vh; width: 100vw" id="root"></div>
+
+    <script>
+      (function () {
+        var overlay = document.getElementById("kiesje_boot_overlay");
+
+        function verbergOverlay() {
+          if (!overlay || overlay.classList.contains("fade-out")) return;
+          overlay.classList.add("fade-out");
+          setTimeout(function () {
+            overlay.style.display = "none";
+          }, 450);
+        }
+
+        // Zodra de app zelf verschijnt (herkenbaar aan het #loading_msg
+        // element dat in app.R staat), is de webR-boot klaar en nemen we
+        // de overgang over van shinylive's eigen (honingraat-)laadscherm.
+        var observer = new MutationObserver(function () {
+          if (document.getElementById("loading_msg")) {
+            verbergOverlay();
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Vangnet: als er om wat voor reden dan ook niets wordt gevonden,
+        // verberg het opstartscherm sowieso na 60 seconden.
+        setTimeout(verbergOverlay, 60000);
+      })();
+    </script>
+
     
   </body>
 </html>
