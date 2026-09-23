@@ -37,6 +37,19 @@
                          50% { transform: rotate(45deg) scale(1.05); opacity: 1; } }
 </style>
 <script>
+  // Tabbladnaam vastzetten (shinylive zet anders "Shiny App")
+  (function () {
+    var T = "ZZP Checklist";
+    function zet() { if (document.title !== T) document.title = T; }
+    zet();
+    // extra vangnet: de eerste 2 minuten elke seconde controleren
+    var n = 0, t = setInterval(function () { zet(); if (++n > 120) clearInterval(t); }, 1000);
+    window.addEventListener("message", zet);
+    document.addEventListener("DOMContentLoaded", function () {
+      zet();
+      new MutationObserver(zet).observe(document.head, { childList: true, subtree: true, characterData: true });
+    });
+  })();
   (function () {
     function weg() {
       var el = document.getElementById("knmt-laadscherm");
@@ -46,10 +59,35 @@
     }
     // De app stuurt dit bericht zodra hij klaar is
     window.addEventListener("message", function (e) {
-      if (e.data === "checklist-klaar") weg();
+      if (e.data === "checklist-klaar") {
+        weg();
+        // Staat de site zelf in een iframe (bijv. op knmt.nl)? Geef het seintje door.
+        if (window.parent !== window) {
+          try { window.parent.postMessage("checklist-klaar", "*"); } catch (err) {}
+        }
+      }
     });
-    // Vangnet: na 90 seconden altijd weghalen
-    setTimeout(weg, 90000);
+    // Tweede route: zodra shinylive het app-venster (iframe) heeft geladen,
+    // is de app in beeld. Werkt ook als app.R het seintje niet stuurt.
+    function volgFrames() {
+      var root = document.getElementById("root") || document.body;
+      function koppel(f) {
+        if (f.dataset.knmtGevolgd) return;
+        f.dataset.knmtGevolgd = "1";
+        f.addEventListener("load", function () {
+          var src = f.getAttribute("src") || "";
+          if (src && src !== "about:blank") setTimeout(weg, 1500);
+        });
+      }
+      function zoek() { root.querySelectorAll("iframe").forEach(koppel); }
+      zoek();
+      new MutationObserver(zoek).observe(root, { childList: true, subtree: true });
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", volgFrames);
+    } else { volgFrames(); }
+    // Laatste vangnet: na 60 seconden altijd weghalen
+    setTimeout(weg, 60000);
   })();
 </script>
 </head>
